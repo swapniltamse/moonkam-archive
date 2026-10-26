@@ -3,10 +3,10 @@
 About 5,800 original images from NASA's GRAIL MoonKAM program (2011 to 2012), the cameras that
 middle-school classrooms aimed at the Moon during the GRAIL mission. The public gallery went offline for
 over a decade. This set was recovered in 2026 from a mission backup, catalogued, and released for
-preservation. Imagery is public domain.
+preservation.
 
 ## Credit
-NASA / Caltech-JPL / MIT / Sally Ride Science (public domain). Recovered and contributed by Swapnil Tamse
+NASA / Caltech-JPL / MIT / Sally Ride Science. Recovered and contributed by Swapnil Tamse
 (grail.swapniltamse.com), 2026, with the images preserved by Chris Leong and the connection made by
 Margaret King at Sally Ride Science. Independent, non-commercial, not affiliated with or endorsed by NASA.
 
@@ -30,6 +30,10 @@ the exact millisecond capture time. The set was deduplicated and screened for co
 ## A note on names
 A small number of award-tagged frames carried individual student names and are intentionally not included in
 this public release. That subset is available to the hosting institution for curation.
+
+## Rights
+The catalogue and documentation are CC0 1.0 (see LICENSE). The images and videos are NASA mission material;
+the contributor claims no copyright in them. Details, and the open question on UC San Diego, are in RIGHTS.md.
 
 ## More
 https://grail.swapniltamse.com and https://grail.swapniltamse.com/spif/
