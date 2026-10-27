@@ -32,7 +32,7 @@ A small number of award-tagged frames carried individual student names and are i
 this public release. That subset is available to the hosting institution for curation.
 
 ## Rights
-The catalogue and documentation are CC0 1.0 (see LICENSE). The images and videos are NASA mission material;
+The catalogue and documentation are CC BY 4.0 (see LICENSE and NOTICE): reuse them freely, with credit. The images and videos are NASA mission material;
 the contributor claims no copyright in them. Details, and the open question on UC San Diego, are in RIGHTS.md.
 
 ## More
