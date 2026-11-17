@@ -28,10 +28,27 @@ def pixel_dir(px, py, cam, orient=None):
     return [x, y, 1.0]
 
 
-def ground(et, craft, cam, px, py, orient=None):
+# Mounting corrections (Euler angles in degrees, axes 3-2-1, applied in the camera
+# frame), fitted with the clock held at the camera-1 value by joint_fit.py on
+# 4 camera 2 and 2 camera 3 control-point frames. Camera 3 holds up when one frame
+# is left out (6.4 -> 1.9 km and 7.3 -> 3.0 km); camera 2 is weaker (3 of 4 held-out
+# frames improve). Ebb only: Flow's cameras are separate hardware and have none.
+MOUNT = {("A", 2): (0.430, 0.858, -0.317), ("A", 3): (-0.771, -1.971, -0.341)}
+
+
+def pixel_dir_mounted(px, py, craft, cam, orient=None):
+    d = pixel_dir(px, py, cam, orient)
+    rot = MOUNT.get((craft, cam))
+    if rot:
+        m = sp.eul2m(*[math.radians(a) for a in rot], 3, 2, 1)
+        d = list(sp.mxv(m, d))
+    return d
+
+
+def ground(et, craft, cam, px, py, orient=None, mount=True):
     """Return (lon_deg_east, lat_deg) where the pixel's ray meets the Moon
     ellipsoid, or None if it misses (sky or limb)."""
-    d = pixel_dir(px, py, cam, orient)
+    d = pixel_dir_mounted(px, py, craft, cam, orient) if mount else pixel_dir(px, py, cam, orient)
     try:
         spoint, _, _ = sp.sincpt("Ellipsoid", "MOON", et, "MOON_ME", "LT+S",
                                  f"GRAIL-{craft}", frame_name(craft, cam), d)

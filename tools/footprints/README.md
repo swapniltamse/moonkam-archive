@@ -12,5 +12,13 @@ The code that produced `moonkam_footprints.csv`. Same files as the GRAIL tribute
 4. `python validate_carrel.py` prints the control-point test for all four image flips.
 5. `python footprints.py ../../moonkam_catalogue_public.csv out.csv` rebuilds the table.
 
-The camera flip and clock offset are set in `camera.py` and `footprints.py`; see the README at the top of this
-repository for how they were measured and what is still open.
+Also here:
+- `gcp_tools.py`: renders a frame with a pixel grid and an LRO WAC map crop with named features, converts map
+  pixels to lon/lat, and fits clock offset, flip and camera to a control-point CSV (`eval`).
+- `joint_fit.py`: separates the clock offset from per-camera mounting tilts.
+- `validate_all.py`: scores the final model on every control-point set.
+- `flow_camera.py`: infers the camera for each Flow frame from where the sky is; output `flow_cameras.csv`.
+- `control_points/`: the 14 matched sets.
+
+The camera flip, clock offsets and mounting corrections are set in `camera.py` and `footprints.py`; see the README
+at the top of this repository for how they were measured and what is still open.
