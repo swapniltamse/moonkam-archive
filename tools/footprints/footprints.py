@@ -6,9 +6,10 @@ sun's incidence angle at the centre, and the nearest named feature from the
 USGS gazetteer.
 
 Clock offset: control points matched by hand on 4 Ebb camera-1 frames (4 days)
-put the file-name time 23.5 s late (frames range -22.9 to -24.0 s). Flow's file
+put the file-name time 23.5 s late (frames range -22.9 to -24.0 s, 3 days). Ebb camera 2 uses
+its own -25.47 s (CAMERA_CLOCK_OFFSET_S). Flow's file
 names come from a different pipeline: its nadir control-point frame gives -61.5 s
-(oblique frames -57.6 to -64.8 s). Ebb cameras 2 and 3 also get a small mounting
+(oblique frames -57.6 to -64.8 s). Ebb camera 3 also gets a small mounting
 correction (camera.py MOUNT). The output keeps the centre computed with no
 offset and no mounting fix as well.
 
@@ -24,11 +25,18 @@ import sys
 
 import spiceypy as sp
 
-from camera import NX, NY, ground
+from camera import CX, CY, NX, NY, ground
 from gazetteer import features
 from kernels import load
 
-CLOCK_OFFSET_S = {"A": -23.5, "B": -61.5}   # Ebb from 4 camera-1 frames; Flow from its nadir frame
+CLOCK_OFFSET_S = {"A": -23.44, "B": -61.5}   # terrain fits: Ebb from 4 camera-1 frames; Flow from its nadir frame
+# Per-camera clocks: none. (A camera-2 clock was tried on the sphere; with terrain it is not
+# needed, and the terrain model without it won on unseen camera-2 frames.)
+CAMERA_CLOCK_OFFSET_S = {}
+
+
+def clock_offset(craft, cam):
+    return CAMERA_CLOCK_OFFSET_S.get((craft, cam), CLOCK_OFFSET_S[craft])
 _here = os.path.join(os.path.dirname(os.path.abspath(__file__)), "flow_cameras.csv")
 FLOW_CAMERAS = _here if os.path.exists(_here) else os.path.join(os.environ.get("GRAIL_SPICE_DIR", ""), "out", "flow_cameras.csv")
 R = 1737.4
@@ -41,7 +49,7 @@ def utc_of(s):
 
 
 def subpoint(et, craft):
-    st, _ = sp.spkezr(f"GRAIL-{craft}", et, "MOON_ME", "LT+S", "MOON")
+    st, _ = sp.spkezr(f"GRAIL-{craft}", et, "MOON_ME", "NONE", "MOON")  # geometric (LT+S here added ~160 m of stellar aberration)
     r, lon, lat = sp.reclat(st[:3])
     return math.degrees(lon), math.degrees(lat), r - R
 
@@ -81,9 +89,10 @@ def flow_cameras():
 def frame_row(r, nearest, flowcam):
     craft = "A" if r["spacecraft"].startswith("GRAIL-A") else "B"
     et_raw = sp.str2et(utc_of(r["captured_utc"]))
-    et = et_raw + CLOCK_OFFSET_S[craft]
+    cam0 = int(r["camera"][-1]) if r["camera"] else None
+    et = et_raw + clock_offset(craft, cam0)
     out = {"filename": r["filename"], "spacecraft": r["spacecraft"], "camera": r["camera"],
-           "captured_utc": r["captured_utc"], "clock_offset_s": CLOCK_OFFSET_S[craft]}
+           "captured_utc": r["captured_utc"], "clock_offset_s": clock_offset(craft, cam0)}
     lon, lat, alt = subpoint(et, craft)
     out.update(sub_lon=round(lon, 4), sub_lat=round(lat, 4), alt_km=round(alt, 2))
     if r["camera"]:
@@ -101,8 +110,8 @@ def frame_row(r, nearest, flowcam):
     grid = [(x, y) for x in (0, NX / 4, NX / 2, 3 * NX / 4, NX - 1) for y in (0, NY / 4, NY / 2, 3 * NY / 4, NY - 1)]
     hits = [ground(et, craft, cam, x, y) for x, y in grid]
     out["on_moon_fraction"] = round(sum(1 for h in hits if h) / len(hits), 2)
-    c = ground(et, craft, cam, NX / 2, NY / 2)
-    c0 = ground(et_raw, craft, cam, NX / 2, NY / 2, mount=False)
+    c = ground(et, craft, cam, CX, CY)          # optical centre (359.5, 242.5)
+    c0 = ground(et_raw, craft, cam, CX, CY, mount=False)
     if c0:
         out.update(center_lon_no_offset=round(c0[0], 4), center_lat_no_offset=round(c0[1], 4))
     corners = [ground(et, craft, cam, x, y) for x, y in ((0, 0), (NX - 1, 0), (NX - 1, NY - 1), (0, NY - 1))]

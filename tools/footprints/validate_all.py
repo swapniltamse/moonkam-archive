@@ -13,7 +13,7 @@ import sys
 import spiceypy as sp
 
 from camera import gc_km, ground
-from footprints import CLOCK_OFFSET_S, flow_cameras, utc_of
+from footprints import clock_offset, flow_cameras, utc_of
 from kernels import load
 
 if __name__ == "__main__":
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         else:
             g = flowcam.get(rows[0]["frame_file"], "")
             cam, src = (1 if g in ("1 or 4", "") else int(g)), f"classifier ({g or 'missing'})"
-        et = sp.str2et(utc_of(rows[0]["utc"])) + CLOCK_OFFSET_S[craft]
+        et = sp.str2et(utc_of(rows[0]["utc"])) + clock_offset(craft, cam)
         errs = []
         for r in rows:
             gp = ground(et, craft, cam, float(r["px"]), float(r["py"]))

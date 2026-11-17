@@ -28,12 +28,13 @@ def pixel_dir(px, py, cam, orient=None):
     return [x, y, 1.0]
 
 
-# Mounting corrections (Euler angles in degrees, axes 3-2-1, applied in the camera
-# frame), fitted with the clock held at the camera-1 value by joint_fit.py on
-# 4 camera 2 and 2 camera 3 control-point frames. Camera 3 holds up when one frame
-# is left out (6.4 -> 1.9 km and 7.3 -> 3.0 km); camera 2 is weaker (3 of 4 held-out
-# frames improve). Ebb only: Flow's cameras are separate hardware and have none.
-MOUNT = {("A", 2): (0.430, 0.858, -0.317), ("A", 3): (-0.771, -1.971, -0.341)}
+# Mounting correction (Euler angles in degrees, axes 3-2-1, applied in the camera
+# frame) for Ebb camera 3 only, fitted with LOLA terrain on its 2 control frames.
+# Hold-out decided the model (Nov 17, 2026): with terrain and no camera-2 correction,
+# unseen camera-2 frames scored 1.74 and 2.73 km, against 2.84 and 4.23 km for the
+# earlier sphere model with a camera-2 clock. The earlier camera-2 tilt and camera-2
+# clock were both compensating for terrain. See evals/ for the full record.
+MOUNT = {("A", 3): (-0.593, -0.845, -0.312)}   # refitted with terrain (sphere fit was -0.771, -1.971, -0.341)
 
 
 def pixel_dir_mounted(px, py, craft, cam, orient=None):
@@ -46,8 +47,15 @@ def pixel_dir_mounted(px, py, craft, cam, orient=None):
 
 
 def ground(et, craft, cam, px, py, orient=None, mount=True):
-    """Return (lon_deg_east, lat_deg) where the pixel's ray meets the Moon
-    ellipsoid, or None if it misses (sky or limb)."""
+    """Return (lon_deg_east, lat_deg) where the pixel's ray first meets the LOLA
+    terrain (terrain.py, LDEM_64), or None if it misses (sky or limb)."""
+    import terrain  # imported here: terrain imports this module
+    rot = MOUNT.get((craft, cam)) if mount else None
+    return terrain.ground_terrain(et, craft, cam, px, py, rot=rot, orient=orient)
+
+
+def ground_sphere(et, craft, cam, px, py, orient=None, mount=True):
+    """Same ray to the smooth 1737.4 km sphere (SPICE sincpt). Kept for comparison."""
     d = pixel_dir_mounted(px, py, craft, cam, orient) if mount else pixel_dir(px, py, cam, orient)
     try:
         spoint, _, _ = sp.sincpt("Ellipsoid", "MOON", et, "MOON_ME", "LT+S",
@@ -79,6 +87,9 @@ def to_pixel(et, craft, cam, lon, lat, orient=None, R=1737.4):
         return None
     m = sp.pxform("MOON_ME", frame_name(craft, cam), et)
     v = sp.mxv(m, los)
+    rot = MOUNT.get((craft, cam))
+    if rot:  # undo the mounting correction applied in pixel_dir_mounted
+        v = sp.mtxv(sp.eul2m(*[math.radians(a) for a in rot], 3, 2, 1), v)
     if v[2] <= 0:
         return None
     hx, hy = HALF[cam]

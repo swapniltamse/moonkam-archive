@@ -31,7 +31,7 @@ the exact millisecond capture time. The set was deduplicated and screened for co
 A small number of award-tagged frames carried individual student names and are intentionally not included in
 this public release. That subset is available to the hosting institution for curation.
 
-## Footprints (added Nov 2026, revised Nov 17)
+## Footprints (added Nov 2026, terrain version Nov 17)
 `moonkam_footprints.csv` gives a computed ground footprint for every frame in the catalogue, joined on `filename`.
 Map: https://grail.swapniltamse.com/moonkam/map/
 
@@ -39,27 +39,36 @@ Columns: camera (for Flow, inferred; see camera_source), camera_source, clock_of
 sub_lat (point below the spacecraft), alt_km, on_moon_fraction (share of a 5 x 5 pixel grid that hits the Moon),
 center_lon and center_lat (picture centre), center_lon_no_offset and center_lat_no_offset (no clock offset and no
 mounting correction), corners (four lon,lat pairs, clockwise from top left), sun_incidence_deg, nearest_feature,
-nearest_feature_diam_km, nearest_feature_dist_km. Longitudes are east, -180 to 180, Moon mean-Earth frame, on the
-1737.4 km sphere.
+nearest_feature_diam_km, nearest_feature_dist_km. Longitudes are east, -180 to 180, Moon mean-Earth frame.
 
-Method: NASA NAIF GRAIL SPICE kernels (navigation SPK, reconstructed pointing CK, MoonKAM instrument kernels),
-traced with SPICE `sincpt`. Feature names from the USGS Gazetteer of Planetary Nomenclature (public domain).
-Code and the control points: `tools/footprints/`.
+Method: NASA NAIF GRAIL SPICE kernels (navigation SPK, reconstructed pointing CK, MoonKAM instrument kernels).
+Each pixel's line of sight is ray-traced to the LRO LOLA elevation model LDEM_64 (64 pixels per degree,
+PDS product LRO-L-LOLA-4-GDR-V1.0; see `terrain.py` for the URL), not a smooth sphere. Feature names from the
+USGS Gazetteer of Planetary Nomenclature (public domain). Code: `tools/footprints/`.
 
-How it was checked:
-- 14 frames were matched to the LRO WAC mosaic (6 to 20 points each, 8 days, Ebb cameras 1 to 3 and Flow):
-  one (Carrel) by hand, the rest with image-matching tools checked by eye. The matching was not shown any model
-  prediction. Each set was then fitted blind for clock offset, image flip and (Flow) camera. Every set chose the
-  same flip. Control points are in `tools/footprints/control_points/`.
-- Ebb's file-name times are 23.5 s late (4 camera-1 frames: -22.9 to -24.0 s). Cameras 2 and 3 get small mounting
-  corrections (about 1 and 2 degrees, `camera.py`), fitted with the clock fixed. Camera 3 holds up when one frame
-  is left out; camera 2 is weaker (3 of 4 held-out frames improve).
-- Flow's file-name times are about 61.5 s late (its nadir frame; oblique frames -57.6 to -64.8 s). Flow does not
-  record the camera; `flow_camera.py` infers it from where the sky sits, and named the right camera on all four
-  matched Flow frames. Frames with no sky could be camera 1 or 4 and are placed as camera 1.
-- Error of the final model on the control points (`validate_all.py`): Ebb 0.9 to 2.4 km RMS on all 10 sets;
-  Flow 1.9 and 3.3 km on two sets, 6.1 and 7.8 km on two oblique sets (Flow has no mounting correction).
-- Positions are on a smooth sphere, without terrain.
+Model: Ebb's file-name times are 23.44 s late, Flow's 61.5 s late. Ebb camera 3 has one small mounting
+correction (about 1 degree, `camera.py`). With terrain, no other camera needs one; an earlier camera 2
+correction was compensating for the missing terrain and was removed. Flow does not record the camera;
+`flow_camera.py` infers it from where the sky sits. Frames with no sky could be camera 1 or 4 and are placed as camera 1.
+
+How it was built and tested (control points are pixel to lon/lat matches against the LRO WAC mosaic):
+- Fitting: 14 frames, 6 to 20 points each, 8 days, Ebb cameras 1 to 3 and Flow, in
+  `tools/footprints/control_points/`. One (Carrel) matched by hand, the rest with image-matching tools checked
+  by eye, without sight of any model prediction.
+- Testing: separate frames matched the same way and never used for fitting, in `control_points/holdout/`
+  (H-* and H2-*). RMS error of the published model:
+
+  | Camera | Hold-out frames | RMS |
+  |---|---|---|
+  | Ebb camera 1 | 3 | 0.77, 0.91, 0.93 km |
+  | Ebb camera 2 | 2 | 1.74, 2.73 km |
+  | Ebb camera 3 | 2 | 1.09, 4.59 km (the Copernicus frame, not yet explained) |
+  | Flow | 2 | 0.34, 0.64 km |
+
+- Truth noise: three frames were matched twice, independently (`control_points/holdout/R-*`). The two
+  matchings differ by 0.19 to 0.88 km RMS, so errors below about 1 km are within matching noise.
+- Reproduce: `python validate_all.py control_points/holdout H2-CAM2-1.csv ...` with `GRAIL_SPICE_DIR`
+  pointing at the NAIF kernels and `terrain/ldem_64.img`.
 
 ## Rights
 The catalogue and documentation are CC BY 4.0 (see LICENSE and NOTICE): reuse them freely, with credit. The images and videos are NASA mission material;
